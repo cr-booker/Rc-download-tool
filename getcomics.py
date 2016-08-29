@@ -654,7 +654,7 @@ class GetComic():
     def keyword_search(self,abc = False):
         """"Takes a user string and searches through the library for a match
 
-            Gets a input from user,and then uses a list comprehension
+            Gets an input from user,and then uses a list comprehension
             to loop over all the keys in the self.book_lib attribute and
             adds them to the list if part of the user generated string is
             containted within the key string.

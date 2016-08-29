@@ -168,7 +168,7 @@ class GetComic():
 
            and (") double quotes become (')the single quotes.
 
-           loops untill all illegal characters are removed'''
+           loops until all illegal characters are removed'''
         
         mapping = [ ('/', ' '), ('\\', ' '), ('"',"'"), (':', ''), ('<', ' '),\
 

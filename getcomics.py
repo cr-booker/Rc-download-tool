@@ -16,7 +16,7 @@ and calls the setup method which gets the home directory where all files will
 be stored and invokes the home method, which is the main text menu of the script
 where all other functions are called from.
 
-Some sleep periods have been placed inbetween the downloading of images
+Some sleep periods have been placed between the downloading of images
 as to be nice to their servers.
 
 *************************

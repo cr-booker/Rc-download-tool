@@ -406,7 +406,7 @@ class GetComic():
                 check = os.system('xdg-open "%s"' % soup_title)
                 print('\033c')
                 if check != 0:
-                    print('An error occured! The containting folder could not be opened!')
+                    print('An error occurred! The containting folder could not be opened!')
                     time.sleep(1)
                     print('\033c')
             else:

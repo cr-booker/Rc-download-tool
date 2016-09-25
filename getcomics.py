@@ -16,7 +16,7 @@ and calls the setup method which gets the home directory where all files will
 be stored and invokes the home method, which is the main text menu of the script
 where all other functions are called from.
 
-Some sleep periods have been placed inbetween the downloading of images
+Some sleep periods have been placed between the downloading of images
 as to be nice to their servers.
 
 *************************
@@ -168,7 +168,7 @@ class GetComic():
 
            and (") double quotes become (')the single quotes.
 
-           loops untill all illegal characters are removed'''
+           loops until all illegal characters are removed'''
         
         mapping = [ ('/', ' '), ('\\', ' '), ('"',"'"), (':', ''), ('<', ' '),\
 
@@ -406,7 +406,7 @@ class GetComic():
                 check = os.system('xdg-open "%s"' % soup_title)
                 print('\033c')
                 if check != 0:
-                    print('An error occured! The containting folder could not be opened!')
+                    print('An error occurred! The containting folder could not be opened!')
                     time.sleep(1)
                     print('\033c')
             else:
@@ -654,7 +654,7 @@ class GetComic():
     def keyword_search(self,abc = False):
         """"Takes a user string and searches through the library for a match
 
-            Gets a input from user,and then uses a list comprehension
+            Gets an input from user,and then uses a list comprehension
             to loop over all the keys in the self.book_lib attribute and
             adds them to the list if part of the user generated string is
             containted within the key string.

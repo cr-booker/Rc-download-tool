@@ -45,6 +45,7 @@ import time
 import tkinter as tk
 from tkinter import filedialog
 from tqdm import tqdm
+import webbrowser
 import zipfile
 
 
@@ -607,23 +608,27 @@ class GetComic():
            Uses requets to connect to readcomics.net, then parses
            the html(with Beautiful Soup) and extracts all the href links using
            a list comprhension.
-
            Finally uses a for loop to iterate over the list and places the comics title(key)
            and corresponding href links(value) into a dictionary"""
-
-        page = re.get(self.comicList)
-        soup= bs(page.text,'lxml')
-        bad_links = (r'http://www.readcomics.net/',r'http://www.readcomics.net/advanced-search',\
-                     r'http://www.readcomics.net/popular-comic',r'http://www.readcomics.net/comic-list',\
-                     r'http://www.readcomics.net/comic-updates')
-        
-        links = [i['href'] for i in soup.select('ul > li > a') if i['href'] not in bad_links]
-        for i in links:
-            temp_list = list(i)
-            del temp_list[:32]
-            temp_join = ''.join(temp_list)
-            title = temp_join.replace('-',' ')
-            self.book_lib[title] = i
+        try:
+            page = re.get(self.comicList)
+            soup= bs(page.text,'lxml')
+            bad_links = (r'http://www.readcomics.net/',r'http://www.readcomics.net/advanced-search',\
+                         r'http://www.readcomics.net/popular-comic',r'http://www.readcomics.net/comic-list',\
+                         r'http://www.readcomics.net/comic-updates')
+            links = [i['href'] for i in soup.select('ul > li > a') if i['href'] not in bad_links]
+            for i in links:
+                temp_list = list(i)
+                del temp_list[:31]
+                temp_join = ''.join(temp_list)
+                title = temp_join.replace('-',' ')
+                self.book_lib[title] = i
+         except req.HTTPError:
+            print("\033c")
+            print('Failed to load library.')
+            print('Please check your connection and restart Application.')
+            print('Terminating')
+            sys.exit(1)
 
     def library_search(self):
         """Simple text menu that waits for user input on their preferred method
@@ -875,12 +880,9 @@ class GetComic():
                             print("\033c")
                             break
 
-                        
-        
-  
     def start_up_clean(self):
-        """ """
-        
+        """Deletes downloaded files that were not converted to a single .cbz file 
+           do to user closing the terminal."""
         if self.last_dir is not None:
             try:
                 list_ = [i for i in os.listdir(self.last_dir) if self.last_chapter_name in i]
@@ -903,19 +905,9 @@ class GetComic():
         """Loads the pull list json file as well as
            loads all href links from into the book_lib
            dictionary, shows the text title and menu and waits for user input"""
-           
         self.load_pull()
-        try:
-            self.library_load()
-            self.start_up_clean()
-        except re.exceptions.ConnectionError:
-            print('Connection Error!,Please Check your connection and restart application')
-            time.sleep(1)
-            print('Terminating')
-            time.sleep(1)
-            print('Good Bye')
-            sys.exit(0)
-            
+        self.library_load()
+        self.start_up_clean()    
         while True:
             print('#'*32)
             print('#Read Comics.net Cbz Downloader#')
@@ -925,7 +917,8 @@ class GetComic():
             print('B)Edit Pull List.')
             print('C)Library')
             print('D)Options')
-            print('O)Open Home Folder')
+            print('E)Open Home Folder')
+            print('F)Go to Readcomics(Opens Browser)')
             print('Q)Quit.')
             choice = ''.join(input('>>> ').split()).lower()  
             if choice == 'q':
@@ -938,8 +931,11 @@ class GetComic():
                 self.library_search()
             elif choice == 'd':
                 self.options()
-            elif choice == 'o':
+            elif choice == 'e':
                 os.system('xdg-open "%s"' % self.home_dir)
+                print("\033c")
+            elif choice == 'f':
+                webbrowser.open('http://readcomics.net')
                 print("\033c")
             else:
                 print('Invalid Entry!')

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #Created: 5/22/16
-
+#Last updated: 9/25/16
 """
 @author: Sys_Fail
 Scrapes http://www.readcomics.net and creates .cbz files from
@@ -16,7 +16,7 @@ and calls the setup method which gets the home directory where all files will
 be stored and invokes the home method, which is the main text menu of the script
 where all other functions are called from.
 
-Some sleep periods have been placed between the downloading of images
+Some sleep periods have been placed inbetween the downloading of images
 as to be nice to their servers.
 
 *************************
@@ -25,10 +25,7 @@ as to be nice to their servers.
 1)The sites html is pretty simple to scrape, however there were some issues with
 consistency, found that some of the chapter listings were out of order or numbered wrong completely.
 Ive attempted to remedy this a bit.
-
-
 """
-
 from bs4 import BeautifulSoup as bs
 from distutils.dir_util import copy_tree as dis_copy
 from getpass import getpass as maskinput
@@ -36,6 +33,7 @@ import glob
 import json
 from num2words import num2words
 import os
+import platform
 import requests as re
 import re as regx
 import shutil
@@ -45,13 +43,12 @@ import time
 import tkinter as tk
 from tkinter import filedialog
 from tqdm import tqdm
-import webbrowser
 import zipfile
-
 
 class GetComic():
   
     def __init__(self):
+        """ """
         self.last_dir = None
         self.last_chapter_name = None
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -62,8 +59,11 @@ class GetComic():
         self.clean_up = True        
         self.pull_list = {}
         self.book_lib = {}
+        self.platform_information = ''.join((platform.system(),' ',platform.machine()))
+        self.headers = {'User-Agent':''.join(('R.C Comic Downloader 1.5',' ',self.platform_information)),'From':'cryanb91@gmail.com'}
 
     def setup(self):
+        """ """
         if 'config.json' in os.listdir(os.path.dirname(os.path.abspath(__file__))):
             with open('config.json',) as infile:
                 data = json.load(infile)
@@ -114,12 +114,11 @@ class GetComic():
            filename/directory chars removed,a list of hrefs(the chapters),
            and the books description '''
         
-        page = re.get(src)
+        page = re.get(src,headers= self.headers)
         page.raise_for_status()
         soup = bs(page.text,"lxml")
         soup_book_name = soup.find('strong').getText()
         corrected_book_name = self.directory_name_check(soup_book_name)
-
         description = soup.find('p').getText()
         chapters = soup.find_all('a',{'class':'ch-name'},href = True)
         ch_list = [os.path.join(ch['href'],'full') for ch in chapters]
@@ -169,7 +168,7 @@ class GetComic():
 
            and (") double quotes become (')the single quotes.
 
-           loops until all illegal characters are removed'''
+           loops untill all illegal characters are removed'''
         
         mapping = [ ('/', ' '), ('\\', ' '), ('"',"'"), (':', ''), ('<', ' '),\
 
@@ -213,7 +212,7 @@ class GetComic():
             self.last_dir = os.getcwd()
             self.last_chapter_name = ch_name
             self.update_config()
-            chapter_page = re.get(link)
+            chapter_page = re.get(link,headers = self.headers)
             chapter_page.raise_for_status()
             ch_soup = bs(chapter_page.text,'lxml')
             ch_list = [i['src'] for i in ch_soup.find_all('img')]
@@ -226,7 +225,7 @@ class GetComic():
                     name = ''.join([ch_name,' ',str(page_count),'.jpg'])
                 pages.append(name)
                 page_count += 1
-                res = re.get(i)
+                res = re.get(i,headers = self.headers)
                 res.raise_for_status()
                 with open(name, mode = 'wb') as out:
                     for chunk in res.iter_content(10000):
@@ -407,7 +406,7 @@ class GetComic():
                 check = os.system('xdg-open "%s"' % soup_title)
                 print('\033c')
                 if check != 0:
-                    print('An error occurred! The containting folder could not be opened!')
+                    print('An error occured! The containting folder could not be opened!')
                     time.sleep(1)
                     print('\033c')
             else:
@@ -608,33 +607,28 @@ class GetComic():
            Uses requets to connect to readcomics.net, then parses
            the html(with Beautiful Soup) and extracts all the href links using
            a list comprhension.
+
            Finally uses a for loop to iterate over the list and places the comics title(key)
            and corresponding href links(value) into a dictionary"""
-        try:
-            page = re.get(self.comicList)
-            soup= bs(page.text,'lxml')
-            bad_links = (r'http://www.readcomics.net/',r'http://www.readcomics.net/advanced-search',\
-                         r'http://www.readcomics.net/popular-comic',r'http://www.readcomics.net/comic-list',\
-                         r'http://www.readcomics.net/comic-updates')
-            links = [i['href'] for i in soup.select('ul > li > a') if i['href'] not in bad_links]
-            for i in links:
-                temp_list = list(i)
-                del temp_list[:31]
-                temp_join = ''.join(temp_list)
-                title = temp_join.replace('-',' ')
-                self.book_lib[title] = i
-         except req.HTTPError:
-            print("\033c")
-            print('Failed to load library.')
-            print('Please check your connection and restart Application.')
-            print('Terminating')
-            sys.exit(1)
+
+        page = re.get(self.comicList,headers = self.headers)
+        soup= bs(page.text,'lxml')
+        bad_links = (r'http://www.readcomics.net/',r'http://www.readcomics.net/advanced-search',\
+                     r'http://www.readcomics.net/popular-comic',r'http://www.readcomics.net/comic-list',\
+                     r'http://www.readcomics.net/comic-updates')
+        
+        links = [i['href'] for i in soup.select('ul > li > a') if i['href'] not in bad_links]
+        for i in links:
+            temp_list = list(i)
+            del temp_list[:31]
+            temp_join = ''.join(temp_list)
+            title = temp_join.replace('-',' ')
+            self.book_lib[title] = i
 
     def library_search(self):
         """Simple text menu that waits for user input on their preferred method
            of searching calls keyword_search() with/without optional 'abc'
            argument"""
-            
         print("\033c")
         while True:
             print('#############')
@@ -659,7 +653,7 @@ class GetComic():
     def keyword_search(self,abc = False):
         """"Takes a user string and searches through the library for a match
 
-            Gets an input from user,and then uses a list comprehension
+            Gets a input from user,and then uses a list comprehension
             to loop over all the keys in the self.book_lib attribute and
             adds them to the list if part of the user generated string is
             containted within the key string.
@@ -686,9 +680,9 @@ class GetComic():
                 print("\033c")
                 return
             if abc == True:
-                comics = [i.lower() for i in self.book_lib if i[0] == selection[0]]
+                comics = [i.lower()for i in self.book_lib if i[0] == selection[0]]
             else:
-                comics = [i.lower() for i in self.book_lib if selection in i]
+                comics = [i for i in self.book_lib if selection in i]
                 
             if len(comics) == 0:
                 print('No Results Found!')
@@ -705,7 +699,7 @@ class GetComic():
                 break
         print("\033c")
         comics.sort(key = self.natural_key)
-        numbered_list = [''.join((str(i),')',comics[i])) for i in range(len(comics))]
+        numbered_list = [''.join((str(i),')',comics[i].title())) for i in range(len(comics))]
         while True:
             print('####################')
             print('#  Search Results  #')
@@ -879,10 +873,9 @@ class GetComic():
                             os.chdir(self.home_dir)
                             print("\033c")
                             break
-
+  
     def start_up_clean(self):
-        """Deletes downloaded files that were not converted to a single .cbz file 
-           do to user closing the terminal."""
+        """ """
         if self.last_dir is not None:
             try:
                 list_ = [i for i in os.listdir(self.last_dir) if self.last_chapter_name in i]
@@ -899,15 +892,24 @@ class GetComic():
                 self.update_config()
         else:
             return
-            
-                
+                         
     def home(self):
         """Loads the pull list json file as well as
            loads all href links from into the book_lib
            dictionary, shows the text title and menu and waits for user input"""
+           
         self.load_pull()
-        self.library_load()
-        self.start_up_clean()    
+        try:
+            self.library_load()
+            self.start_up_clean()
+        except re.exceptions.ConnectionError:
+            print('Connection Error!,Please Check your connection and restart application')
+            time.sleep(1)
+            print('Terminating')
+            time.sleep(1)
+            print('Good Bye')
+            sys.exit(0)
+            
         while True:
             print('#'*32)
             print('#Read Comics.net Cbz Downloader#')
@@ -917,8 +919,7 @@ class GetComic():
             print('B)Edit Pull List.')
             print('C)Library')
             print('D)Options')
-            print('E)Open Home Folder')
-            print('F)Go to Readcomics(Opens Browser)')
+            print('O)Open Home Folder')
             print('Q)Quit.')
             choice = ''.join(input('>>> ').split()).lower()  
             if choice == 'q':
@@ -931,11 +932,8 @@ class GetComic():
                 self.library_search()
             elif choice == 'd':
                 self.options()
-            elif choice == 'e':
+            elif choice == 'o':
                 os.system('xdg-open "%s"' % self.home_dir)
-                print("\033c")
-            elif choice == 'f':
-                webbrowser.open('http://readcomics.net')
                 print("\033c")
             else:
                 print('Invalid Entry!')

@@ -45,7 +45,6 @@ from distutils.dir_util import copy_tree as dis_copy
 from getpass import getpass as maskinput
 import glob
 import json
-from num2words import num2words
 import os
 import requests as re
 import re as regx
@@ -154,7 +153,10 @@ class GetComic():
         description = soup.find('p').getText()
         chapters = soup.find_all('a',{'class':'ch-name'},href = True)
         ch_list = [os.path.join(ch['href'],'full') for ch in chapters]
-        return soup_book_name,corrected_book_name,ch_list,description
+        chap_dates = [i.text for i in soup.find_all('span')][12:-2]
+        book_info = soup.body.find('div',attrs= {'class': 'manga-details'})
+        book_i_list = [i.text.strip() for i in book_info.find_all('td')]
+        return soup_book_name,corrected_book_name,ch_list,description,book_i_list,chap_dates
 
     def convert_chapter_name(self,title,url):
         """
@@ -294,9 +296,9 @@ class GetComic():
             if os.getcwd() != path:
                 os.chdir(path)
             try:
-                for pics in pages:
-                    os.remove(pics)
-                time.sleep(.9)
+                if len(pages) != 0:
+                    for pics in pages:
+                        os.remove(pics)
             finally:
                 print('Returning...')
                 os.chdir(self.home_dir)
@@ -315,7 +317,7 @@ class GetComic():
             os.chdir(self.home_dir)
             print("\033c")
             
-    def choose_chapter_list(self,name,links):
+    def choose_chapter_list(self,name,links,dates):
         """
         Displays a list of issues for a given series
         and allows user to make a selection from the list.
@@ -342,7 +344,7 @@ class GetComic():
             print("Press: 'q' or type: 'back' to return\n")
             for index,item in enumerate(links,start = 1):
                 #subtracts 1 inorder to keep the index correct since we started at one in the line above
-                print(''.join([str(index),')',name,'# ',self.get_chap_num(links[index-1])])) 
+                print('{0}){1}{2:>10}'.format(index,name,dates[index-1]))#''.join([str(index),')',name,'# ',self.get_chap_num(links[index-1])])) 
             choice = input('>>>')
             if choice in ('back','b','q'):
                 print("\033c")
@@ -393,7 +395,7 @@ class GetComic():
            displays another option 'F' which allows the user to add a series to the
            pull list'''
         print("\033c")
-        soup_title,title,chapters,description = self.get_list(src)
+        soup_title,title,chapters,description,book_details,chap_dates = self.get_list(src)
         chapters.sort(key = self.natural_key)
         title_length = len(soup_title) + 2
         ch_list_length = len(chapters)
@@ -441,6 +443,9 @@ class GetComic():
                 print('# Description #')
                 print('###############')
                 print('\n'.join(textwrap.wrap(description)).strip())
+                print()
+                for title,entry in zip(book_details[::2],book_details[1::2]):
+                    print(title,entry)
                 maskinput('\nPress Enter To Continue.')
                 print('\033c')
 
@@ -460,7 +465,7 @@ class GetComic():
                     time.sleep(.6)
                     
             elif choice == 'e':
-                issue_number = self.choose_chapter_list(soup_title,chapters)
+                issue_number = self.choose_chapter_list(soup_title,chapters,chap_dates)
                 if type(issue_number) == int:
                     self.download_chapter(title,chapters[issue_number])
 
@@ -518,17 +523,24 @@ class GetComic():
                 
                 
     def createCbz(self,name,src,dst = '.',page_list = []):
-        """Creates zip archive, writes pages, and changes
-           ext to '.cbz'
+        """
+        Creates zip archive, writes pages, and changes
+        ext to '.cbz'
 
-           changes to a given directory, uses glob to get a list
-           of all files with the 'jpg' ext.
-           does a sort on the glob list and using the 'with'
-           context manager in combination with zipfile,
-           it iterates over the list, adding it to the zip then calls
-           os.remove() to delete the file from the directory.
-           a new name for the zip is made by splitting the file name from the zip
-           extension and joining the file name to its new '.cbz' extension"""
+        changes to a given directory, uses glob to get a list
+        of all files with the 'jpg' ext.
+        does a sort on the glob list and using the 'with'
+        context manager in combination with zipfile,
+        it iterates over the list, adding it to the zip then calls
+        os.remove() to delete the file from the directory.
+        a new name for the zip is made by splitting the file name from the zip
+        extension and joining the file name to its new '.cbz' extension
+        
+        Parmeters:
+        ---------
+        name(string):
+            Name
+        """
         os.chdir(src)
         zip_name = ''.join((name,'.zip'))
         if page_list:
@@ -545,13 +557,19 @@ class GetComic():
         os.rename(zip_name,new_name)
         
     def load_pull(self):
-        """Loads in pull_list.config.
+        """
+        Loads in pull_list.config.
 
-           Creates pull list.json file if one does not already exist in 
-           the directorythen creates an empty dictionary assining it 
-           to the pull_list attribute.
-           otherwise opens file and saves pull_list.config contents to 
-           the pull_list class attribute"""
+        Creates pull list.json file if one does not already exist in 
+        the directorythen creates an empty dictionary assining it 
+        to the pull_list attribute.
+        otherwise opens file and saves pull_list.config contents to 
+        the pull_list class attribute
+        
+        Return
+        ------
+        output(None):
+        """
         file_path = os.path.join(self.script_dir,'pull list.json')  
         if not os.path.isfile(file_path)or os.path.getsize(file_path) == 0 :
             with open(file_path,'w') as out:
@@ -1043,9 +1061,12 @@ class GetComic():
             elif choice == 'd':
                 self.options()
             elif choice == 'e':
-                os.system('xdg-open "%s"' % self.home_dir) #linux only
+                print('Opening Folder.')
+                time.sleep(1)
+                os.system('xdg-open "%s"' % self.home_dir)
                 print("\033c")
             elif choice == 'f':
+                print('Opening Browser.')
                 webbrowser.open('http://readcomics.net')
                 print("\033c")
             else:

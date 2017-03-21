@@ -35,8 +35,8 @@ continues(they really need to clean up the site a bit :P)
 *************************
 1)General code cleanup and random attempts at optimizing whats already here.
 2)Fix the freaking search function its no bueno and does not worko
-3)Fix numbering system for chapters
-4)Write better Doc strings
+3)Write better Doc strings
+
 """
 from bs4 import BeautifulSoup as bs
 import calendar
@@ -156,7 +156,7 @@ class GetComic():
         chap_dates = [i.text for i in soup.find_all('span')][12:-2]
         book_info = soup.body.find('div',attrs= {'class': 'manga-details'})
         book_i_list = [i.text.strip() for i in book_info.find_all('td')]
-        return soup_book_name,corrected_book_name,ch_list,description,book_i_list,chap_dates
+        return corrected_book_name,ch_list,description,book_i_list,chap_dates
 
     def convert_chapter_name(self,title,url):
         """
@@ -260,6 +260,7 @@ class GetComic():
                 print("\033c")
                 return
             os.chdir(book_dir_title)
+            print(book_dir_title)
             print('Downloading: {}.'.format(ch_name))
             print('Press Ctrl + C to cancel.')
             self.last_dir = os.getcwd()
@@ -299,9 +300,12 @@ class GetComic():
                 if len(pages) != 0:
                     for pics in pages:
                         os.remove(pics)
+                os.chdir(self.home_dir)
+                os.rmdir(path)
+                
             finally:
                 print('Returning...')
-                os.chdir(self.home_dir)
+                #os.chdir(self.home_dir)
                 time.sleep(2)
                 print("\033c")
                 self.leave = True
@@ -328,6 +332,7 @@ class GetComic():
             Name of book
         links(list):
             list of chapter links for given book
+        dates:
         
         Returns
         -------
@@ -344,7 +349,7 @@ class GetComic():
             print("Press: 'q' or type: 'back' to return\n")
             for index,item in enumerate(links,start = 1):
                 #subtracts 1 inorder to keep the index correct since we started at one in the line above
-                print('{0}){1}{2:>10}'.format(index,name,dates[index-1]))#''.join([str(index),')',name,'# ',self.get_chap_num(links[index-1])])) 
+                print('{0}){1}{2:>10}'.format(index,name,dates[index-1]))
             choice = input('>>>')
             if choice in ('back','b','q'):
                 print("\033c")
@@ -387,33 +392,45 @@ class GetComic():
         return link[cut_num:]
         
     def book_display(self,src):
-        '''Basic Text menu, to display information and download options
-           for a given series.
+        """
+        Basic Text menu, to display information and download options
+        for a given series.
 
-           Allows for the download of indivdual as well as multiple chapters
-           if the optional argument 'add_option is set to True,
-           displays another option 'F' which allows the user to add a series to the
-           pull list'''
+        Parameters
+        ----------
+        src(string):
+            url for book to feed get_list function
+        
+        Returns
+        -------
+        Output:None
+           
+
+        Allows for the download of indivdual as well as multiple chapters
+        if the optional argument 'add_option is set to True,
+        displays another option 'F' which allows the user to add a series to the
+        pull list
+        """
         print("\033c")
-        soup_title,title,chapters,description,book_details,chap_dates = self.get_list(src)
+        title,chapters,description,book_details,chap_dates = self.get_list(src)
         chapters.sort(key = self.natural_key)
-        title_length = len(soup_title) + 2
+        title_length = len(title) + 2
         ch_list_length = len(chapters)
         start_num = chapters[0].rfind('-')+ 1
         latest_num = chapters[-1].rfind('-') + 1
         dir_exists = False
-        if  soup_title not in self.pull_list.keys():
+        if  title not in self.pull_list.keys():
             add_option = True
         else:
             add_option = False
         while True:
             print()
             print('='* title_length)
-            print(''.join(('#',soup_title,'#')))
+            print(''.join(('#',title,'#')))
             print('=' * title_length)
             print('Issues:',ch_list_length)
-            print('First:{} #{}'.format(soup_title,self.get_chap_num(chapters[0])))
-            print('Latest:{} #{}'.format(soup_title,self.get_chap_num(chapters[-1])))
+            print('First:{} #{}'.format(title,self.get_chap_num(chapters[0])))
+            print('Latest:{} #{}'.format(title,self.get_chap_num(chapters[-1])))
             print()
             print('Menu')
             print('A)Description.')
@@ -423,9 +440,9 @@ class GetComic():
             print('E)Choose Chapter.')
             if add_option:
                 print('F)Add to Pull List.')
-            else: #soup_title in self.pull_list.keys():
+            else: 
                 print('F)Remove from Pull List.')
-            if os.path.isdir(soup_title):
+            if os.path.isdir(title):
                 dir_exists = True
                 print('G)Delete Folder.')
                 print('O)Open Folder')
@@ -444,8 +461,8 @@ class GetComic():
                 print('###############')
                 print('\n'.join(textwrap.wrap(description)).strip())
                 print()
-                for title,entry in zip(book_details[::2],book_details[1::2]):
-                    print(title,entry)
+                for heading,entry in zip(book_details[::2],book_details[1::2]):
+                    print(heading,entry)
                 maskinput('\nPress Enter To Continue.')
                 print('\033c')
 
@@ -465,22 +482,22 @@ class GetComic():
                     time.sleep(.6)
                     
             elif choice == 'e':
-                issue_number = self.choose_chapter_list(soup_title,chapters,chap_dates)
+                issue_number = self.choose_chapter_list(title,chapters,chap_dates)
                 if type(issue_number) == int:
                     self.download_chapter(title,chapters[issue_number])
 
             elif choice == 'f':
                 if add_option:
-                    self.pull_list[soup_title] = src
+                    self.pull_list[title] = src
                     self.update_pull()
                     add_option = False
                     print(title,'added to Pull List')
                     time.sleep(2)
                     print('\033c')
 
-                elif soup_title in self.pull_list.keys():
+                elif title in self.pull_list.keys():
                     add_option = True
-                    del self.pull_list[soup_title]
+                    del self.pull_list[title]
                     self.update_pull()
                     print(title,'removed from Pull List')
                     time.sleep(2)
@@ -493,11 +510,11 @@ class GetComic():
                     print('#{0} Warning! {0}  #'.format(u"\u26A0"))
                     print('################')
                     print('Continuing will erase the contents of:')
-                    print(os.path.join(self.home_dir,soup_title))
+                    print(os.path.join(self.home_dir,title))
                     decision = ''.join(input('Continue(Y/N)? >>> ').split()).lower()
                     if decision in ('y','yes','ya'):
                         print('Deleting...')
-                        tqdm(shutil.rmtree(os.path.join(self.home_dir,soup_title)))
+                        tqdm(shutil.rmtree(os.path.join(self.home_dir,title)))
                         print('Folder Deleted')
                         maskinput('Press Enter to Continue.')
                         break
@@ -509,7 +526,7 @@ class GetComic():
                 print('\033c')
                     
             elif choice == 'o' and dir_exists: 
-                check = os.system('xdg-open "%s"' % soup_title)
+                check = os.system('xdg-open "%s"' % title)
                 print('\033c')
                 if check != 0:
                     print('An error occurred! The containting folder could not be opened!')
@@ -598,6 +615,8 @@ class GetComic():
                 json.dump(self.pull_list,out)
         
     def update_config(self):
+        """
+        """
         file_path = os.path.join(self.script_dir,'config.json')  
         config = {'script':self.script_dir,'home':self.home_dir,'last':[self.last_dir,self.last_chapter_name]}
         with open(file_path,'w') as out:
@@ -770,6 +789,7 @@ class GetComic():
             print('#############\n')
             print('A)Search by keyword')
             print('B)Search by Letter')
+            print('C)Search All')
             print('Q)Back')
             choice = ''.join(input('>>> ').split()).lower()  
             if choice == 'q':
@@ -779,6 +799,9 @@ class GetComic():
                 self.keyword_search()
             elif choice == 'b':
                 self.keyword_search(abc = True)
+            elif choice == 'c':
+             
+            
             else:
                 print('Invalid Entry')
                 time.sleep(1)
@@ -929,83 +952,85 @@ class GetComic():
                         time.sleep(1)
                         print("\033c")
                 print("\033c")
-
             elif choice == 'c':
+                self.change_dir()
+    
+    def change_dir(self):
+        """ """
+        print("\033c")
+        while True:
+            print('Current Directory:',os.getcwd())
+            print('Would You like to change directories?')
+            dir_choice = ''.join(input('>>> ').split()).lower()
+            if dir_choice not in ('n','no','q','quit','yes','y'):
+                print('Invalid Entry!')
+                time.sleep(1)
                 print("\033c")
-                while True:
-                    print('Current Directory:',os.getcwd())
-                    print('Would You like to change directories?')
-                    dir_choice = ''.join(input('>>> ').split()).lower()
-                    if dir_choice not in ('n','no','q','quit','yes','y'):
-                        print('Invalid Entry!')
+            elif dir_choice in ('n','no','q','quit'):
+                print("\033c")
+                return
+            elif dir_choice in ('yes','y'):
+                break
+        while True:
+            root = tk.Tk()
+            root.withdraw()
+            path = filedialog.askdirectory()
+            if path == '':
+                print("\033c")
+                return
+            try:
+                temp = TemporaryFile(dir = path)
+                temp.close()
+            except PermissionError:
+                print('Access Denied! Application does not have permission\
+                       to access desired location!')
+                os.chdir(self.home_dir)
+                time.sleep(3)
+                print("\033c")
+                continue
+            except FileNotFoundError:
+                print('No such directory.:',path)
+                os.chdir(self.home_dir)
+                time.sleep(3)
+                print("\033c")
+                continue
+            except FileExistsError:
+                print('directory already exists:.',path)
+                os.chdir(self.home_dir)
+                time.sleep(3)
+                print("\033c")
+                continue
+            files_to_check = [i for i in os.listdir(self.home_dir) if i in os.listdir(path)]
+            print('Move Files from:', self.home_dir,)
+            print('To:',path,'?')
+            move_input = ''.join(input('>>> ').split()).lower()
+            if move_input in ('y','yes'):
+                print("\033c")
+                if len(files_to_check) > 0:
+                    overwrite = self.overwrite_check(files_to_check,path) 
+                for obj in tqdm(os.listdir()):
+                    if obj not in files_to_check:
+                        shutil.move(obj, path)
+                    elif overwrite ==  True:
+                        shutil.rmtree(os.path.join(path,obj))
+                        shutil.move(obj,path)
+                        print('Files Successfully moved to:',path)
                         time.sleep(1)
-                        print("\033c")
-                    elif dir_choice in ('n','no','q','quit'):
-                        print("\033c")
-                        return
-                    elif dir_choice in ('yes','y'):
-                        root = tk.Tk()
-                        root.withdraw()
-                        path = filedialog.askdirectory()
-                        if path == '':
-                            print("\033c")
-                            break
-                        else:
-                            
-                            while True:
-                                try:
-                                    temp = TemporaryFile(dir = path)
-                                    temp.close()
-                                except PermissionError:
-                                    print('Access Denied! Application does not have permission\
-                                          to access desired location!')
-                                    os.chdir(self.home_dir)
-                                    time.sleep(3)
-                                    print("\033c")
-                                    break
-                                except FileNotFoundError:
-                                    print('No such directory.:',path)
-                                    os.chdir(self.home_dir)
-                                    time.sleep(3)
-                                    print("\033c")
-                                    break
-                                except FileExistsError:
-                                    print('directory already exists:.',path)
-                                    os.chdir(self.home_dir)
-                                    time.sleep(3)
-                                    print("\033c")
-                                    break
-                                files_to_check = [i for i in os.listdir(self.home_dir) if i in os.listdir(path)]
-                                print('Move Files from:', self.home_dir,)
-                                print('To:',path,'?')
-                                move_input = ''.join(input('>>> ').split()).lower()
-                                if move_input in ('y','yes'):
-                                    print("\033c")
-                                    if len(files_to_check) > 0:
-                                        overwrite = self.overwrite_check(files_to_check,path) 
-                                    for obj in tqdm(os.listdir()):
-                                        if obj not in files_to_check:
-                                            shutil.move(obj, path)
-                                        elif overwrite ==  True:
-                                            shutil.rmtree(os.path.join(path,obj))
-                                            shutil.move(obj,path)
-                                    print('Files Successfully moved to:',path)
-                                    time.sleep(1)
-                                    break
-                                elif move_input in ('n','no'):
-                                    print('Directory Change successful')
-                                    time.sleep(2)
-                                    break
-                                else:
-                                    print('Invalid Entry!')
-                                    time.sleep(1)
-                                    print("\033c")
-                            maskinput('Press Enter To Continue')
-                            self.home_dir = path
-                            self.update_config()
-                            os.chdir(self.home_dir)
-                            print("\033c")
-                            break
+                        break
+            elif move_input in ('n','no'):
+                print('Directory Change successful')
+                time.sleep(2)
+                break
+            else:
+                print('Invalid Entry!')
+                time.sleep(1)
+                print("\033c")
+        maskinput('Press Enter To Continue')
+        self.home_dir = path
+        self.update_config()
+        os.chdir(self.home_dir)
+        print("\033c")
+        
   
     def start_up_clean(self):
         """ """
@@ -1025,7 +1050,6 @@ class GetComic():
                 self.update_config()
         else:
             return
-            
                 
     def home(self):
         """Loads the pull list json file as well as
@@ -1041,6 +1065,7 @@ class GetComic():
             print('#'*32)
             print('Support Your Local Comic Shop!')
             print('{} - {}'.format(self.day,self.todays_date.strftime('%B %d, %Y')))
+            print('\nTotal Library count:{}'.format(len(self.book_lib)))
             print()
             print('A)Pull List.')
             print('B)Edit Pull List.')

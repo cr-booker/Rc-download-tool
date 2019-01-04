@@ -1,8 +1,5 @@
-#! /usr/bin/python
-#Created: 5/22/16
-#Updated:11/13/16
+#! /usr/bin/python 3
 """
-@author: Sys_Fail
 Scrapes http://www.readcomics.net and creates .cbz files from
 downloaded image files.
 
@@ -67,7 +64,7 @@ class GetComic():
         self.last_chapter_name = None
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         self.home_dir = self.setup()
-        self.comicList = 'http://www.readcomics.net/comic-list'
+        self.comicList = 'http://www.readcomics.io/comic-list'
         self.pull_load = False
         self.leave = False
         self.clean_up = True        
@@ -758,9 +755,9 @@ class GetComic():
         try:
             page = re.get(self.comicList)
             soup= bs(page.text,'lxml')
-            bad_links = (r'http://www.readcomics.net/',r'http://www.readcomics.net/advanced-search',\
-                         r'http://www.readcomics.net/popular-comic',r'http://www.readcomics.net/comic-list',\
-                         r'http://www.readcomics.net/comic-updates')
+            bad_links = (r'http://www.readcomics.io/',r'http://www.readcomics.io/advanced-search',\
+                         r'http://www.readcomics.io/popular-comic',r'http://www.readcomics.io/comic-list',\
+                         r'http://www.readcomics.io/comic-updates')
         
             links = [i['href'] for i in soup.select('ul > li > a') if i['href'] not in bad_links]
             for i in links:
@@ -800,6 +797,7 @@ class GetComic():
             elif choice == 'b':
                 self.keyword_search(abc = True)
             elif choice == 'c':
+                pass
              
             
             else:
@@ -1092,7 +1090,7 @@ class GetComic():
                 print("\033c")
             elif choice == 'f':
                 print('Opening Browser.')
-                webbrowser.open('http://readcomics.net')
+                webbrowser.open('http://readcomics.io')
                 print("\033c")
             else:
                 print('Invalid Entry!')
